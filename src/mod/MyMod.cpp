@@ -1,32 +1,62 @@
-#include "mod/MyMod.h"
+#include "MyMod.h" // Include our new header
 
+#include "ll/api/memory/Hook.h"
 #include "ll/api/mod/RegisterHelper.h"
 
-namespace my_mod {
+#include "mc/world/level/Weather.h"
+#include "mc/world/level/dimension/Dimension.h"
+#include "mc/world/level/dimension/VanillaDimensions.h"
 
-MyMod& MyMod::getInstance() {
-    static MyMod instance;
+namespace NoRainFog {
+
+// --- Singleton Implementation ---
+NoRainFog& NoRainFog::getInstance() {
+    // This static instance is created only once
+    static NoRainFog instance;
     return instance;
 }
 
-bool MyMod::load() {
-    getSelf().getLogger().debug("Loading...");
-    // Code for loading the mod goes here.
+// --- Constructor and Lifecycle Methods Implementation ---
+NoRainFog::NoRainFog() : mSelf(*ll::mod::NativeMod::current()), mLogger(nullptr) {}
+
+bool NoRainFog::load() {
+    // Get and store the logger from the NativeMod instance
+    mLogger = &getSelf().getLogger();
     return true;
 }
 
-bool MyMod::enable() {
-    getSelf().getLogger().debug("Enabling...");
-    // Code for enabling the mod goes here.
+bool NoRainFog::enable() {
+    getLogger().info("NoRainFog Plugin enabled: Overworld rain fog has been removed.");
     return true;
 }
 
-bool MyMod::disable() {
-    getSelf().getLogger().debug("Disabling...");
-    // Code for disabling the mod goes here.
+bool NoRainFog::disable() {
+    getLogger().info("NoRainFog Plugin disabled.");
     return true;
 }
 
-} // namespace my_mod
+} // namespace NoRainFog
 
-LL_REGISTER_MOD(my_mod::MyMod, my_mod::MyMod::getInstance());
+
+// --- Hook and Registration (Global Scope) ---
+
+// The auto-hooking macro remains the best way to manage the hook's lifecycle.
+// It is independent of our class structure and activates when the DLL is loaded.
+LL_AUTO_TYPE_INSTANCE_HOOK(
+    WeatherServerTickHook,
+    ll::memory::HookPriority::Normal,
+    Weather,
+    "?serverTick@Weather@@QEAAXXZ",
+    void,
+    Weather* self
+) {
+    origin(self); // Call the original function
+
+    Dimension& dimension = self->mDimension;
+    if (dimension.getDimensionId() == VanillaDimensions::Overworld()) {
+        self->mFogLevel = 0.0f;
+    }
+}
+
+// Register the mod using the singleton instance.
+LL_REGISTER_MOD(NoRainFog::NoRainFog, NoRainFog::NoRainFog::getInstance());

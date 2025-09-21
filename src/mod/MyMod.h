@@ -1,18 +1,22 @@
 #pragma once
 
 #include "ll/api/mod/NativeMod.h"
+#include "ll/api/io/Logger.h"
 
-namespace my_mod {
+namespace NoRainFog {
 
-class MyMod {
-
+class NoRainFog {
 public:
-    static MyMod& getInstance();
+    // Singleton access method
+    static NoRainFog& getInstance();
 
-    MyMod() : mSelf(*ll::mod::NativeMod::current()) {}
-
+    // Returns the NativeMod instance associated with this plugin
     [[nodiscard]] ll::mod::NativeMod& getSelf() const { return mSelf; }
+    
+    // Returns the logger for this plugin
+    [[nodiscard]] ll::io::Logger& getLogger() const { return *mLogger; }
 
+    // --- Lifecycle Methods ---
     /// @return True if the mod is loaded successfully.
     bool load();
 
@@ -22,12 +26,12 @@ public:
     /// @return True if the mod is disabled successfully.
     bool disable();
 
-    // TODO: Implement this method if you need to unload the mod.
-    // /// @return True if the mod is unloaded successfully.
-    // bool unload();
-
 private:
+    // Private constructor to enforce singleton pattern
+    NoRainFog();
+
     ll::mod::NativeMod& mSelf;
+    ll::io::Logger* mLogger;
 };
 
-} // namespace my_mod
+} // namespace NoRainFog

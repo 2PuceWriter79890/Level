@@ -1,26 +1,26 @@
-#include "MyMod.h" // Include our new header
+#include "MyMod.h"
 
 #include "ll/api/memory/Hook.h"
 #include "ll/api/mod/RegisterHelper.h"
+#include "ll/api/memory/Symbol.h" // 为 "_sym" 字面量提供定义
 
 #include "mc/world/level/Weather.h"
 #include "mc/world/level/dimension/Dimension.h"
 #include "mc/world/level/dimension/VanillaDimensions.h"
 
+// 引入字面量所在的命名空间
+using namespace ll::literals::memory_literals;
+
 namespace NoRainFog {
 
-// --- Singleton Implementation ---
 NoRainFog& NoRainFog::getInstance() {
-    // This static instance is created only once
     static NoRainFog instance;
     return instance;
 }
 
-// --- Constructor and Lifecycle Methods Implementation ---
 NoRainFog::NoRainFog() : mSelf(*ll::mod::NativeMod::current()), mLogger(nullptr) {}
 
 bool NoRainFog::load() {
-    // Get and store the logger from the NativeMod instance
     mLogger = &getSelf().getLogger();
     return true;
 }
@@ -38,19 +38,17 @@ bool NoRainFog::disable() {
 } // namespace NoRainFog
 
 
-// --- Hook and Registration (Global Scope) ---
+// --- Hook and Registration ---
 
-// The auto-hooking macro remains the best way to manage the hook's lifecycle.
-// It is independent of our class structure and activates when the DLL is loaded.
 LL_AUTO_TYPE_INSTANCE_HOOK(
     WeatherServerTickHook,
     ll::memory::HookPriority::Normal,
     Weather,
-    "?serverTick@Weather@@QEAAXXZ",
+    "?serverTick@Weather@@QEAAXXZ"_sym, // <--- 已修正：使用 "_sym" 字面量创建 SymbolView
     void,
     Weather* self
 ) {
-    origin(self); // Call the original function
+    origin(self); 
 
     Dimension& dimension = self->mDimension;
     if (dimension.getDimensionId() == VanillaDimensions::Overworld()) {
@@ -58,5 +56,5 @@ LL_AUTO_TYPE_INSTANCE_HOOK(
     }
 }
 
-// Register the mod using the singleton instance.
+// 注册插件
 LL_REGISTER_MOD(NoRainFog::NoRainFog, NoRainFog::NoRainFog::getInstance());
